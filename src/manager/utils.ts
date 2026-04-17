@@ -3,7 +3,6 @@
 import type St from 'gi://St';
 import type {RoundedCornersEffect} from '../effect/rounded_corners_effect.js';
 import type {
-    BoxShadow,
     RoundedCornerSettings,
     RoundedWindowActor,
 } from '../utils/types.js';
@@ -94,11 +93,12 @@ export function computeBounds(
     };
 
     // Kitty draws its window decoration by itself, so we need to manually
-    // clip its shadow and recompute the outer bounds for it.
+    // clip its shadow and recompute the outer bounds for it. Check wm_class
+    // first to avoid reading the pref for every non-kitty window.
     if (
-        getPref('tweak-kitty-terminal') &&
+        actor.metaWindow.wmClass === 'kitty' &&
         actor.metaWindow.get_client_type() === Meta.WindowClientType.WAYLAND &&
-        actor.metaWindow.wmClass === 'kitty'
+        getPref('tweak-kitty-terminal')
     ) {
         const [x1, y1, x2, y2] = APP_SHADOWS.kitty;
         bounds.x1 += x1;
@@ -159,19 +159,17 @@ export function computeShadowActorOffset([
 export function updateShadowActorStyle(
     win: Meta.Window,
     actor: St.Bin,
-    borderRadius: number,
-    shadow: BoxShadow,
-    padding: RoundedCornerSettings['padding'],
+    borderRadius?: number,
+    shadow = getPref('focused-shadow'),
+    padding?: RoundedCornerSettings['padding'],
 ) {
-    const {left, right, top, bottom} = padding;
-
-    // Increase border_radius when smoothing is on.
-    // Read global settings once to avoid repeated GSettings deserializations.
-    let adjustedBorderRadius = borderRadius;
     const globalCfg = getPref('global-rounded-corner-settings');
-    if (globalCfg !== null) {
-        adjustedBorderRadius *= 1.0 + globalCfg.smoothing;
-    }
+    const effectiveBorderRadius = borderRadius ?? globalCfg.borderRadius;
+    const effectivePadding = padding ?? globalCfg.padding;
+
+    const {left, right, top, bottom} = effectivePadding;
+    const adjustedBorderRadius =
+        effectiveBorderRadius * (1.0 + globalCfg.smoothing);
 
     actor.style = `padding: ${SHADOW_PADDING}px;`;
 
