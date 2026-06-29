@@ -266,32 +266,6 @@ export async function shouldEnableEffect(
     );
 }
 
-/**
- * Check if a window is Chromium/Electron-based.
- *
- * @param win - The window to check.
- * @returns whether the application uses Chromium.
- */
-export async function isChromium(win: Meta.Window & {_isChromium?: boolean}) {
-    // biome-ignore lint/suspicious/noEqualsToNull: matching both null and undefined is intended.
-    if (win._isChromium != null) return win._isChromium;
-    return await withProcMaps(
-        win,
-        contents => {
-            const hasChromiumShm = contents.includes(
-                '/dev/shm/.org.chromium.Chromium',
-            );
-            win._isChromium = hasChromiumShm;
-            logDebug(win.wmClass, 'chromium', hasChromiumShm);
-            return hasChromiumShm;
-        },
-        () => {
-            win._isChromium = false;
-            return false;
-        },
-    );
-}
-
 // Brave origin apps (PWAs, site-specific browsers) use 'brave-origin' instead
 // of 'brave-browser', so we match the prefix rather than the full class name.
 const CHROMIUM_WM_CLASS_PATTERN =
@@ -299,7 +273,12 @@ const CHROMIUM_WM_CLASS_PATTERN =
 
 /**
  * Check whether a window belongs to a Chromium-based browser. These apps
- * render stale surfaces for unfocused windows after screen lock/unlock.
+ * render stale surfaces for unfocused windows after screen lock/unlock, and
+ * take longer to deliver a fresh frame after unminimize.
+ *
+ * Deliberately wm_class-based rather than reading /proc/<pid>/maps: the
+ * latter is prone to permission errors for sandboxed/other-user processes
+ * (see withProcMaps below) and adds an async round-trip to a hot path.
  *
  * @param win - The window to check.
  * @returns Whether the window belongs to a Chromium-based browser.

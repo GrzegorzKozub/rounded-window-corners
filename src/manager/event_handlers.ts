@@ -24,7 +24,7 @@ import {
     computeWindowContentsOffset,
     getRoundedCornersCfg,
     getRoundedCornersEffect,
-    isChromium,
+    isChromiumWindow,
     shouldEnableEffect,
     unwrapActor,
     updateShadowActorStyle,
@@ -150,7 +150,7 @@ export function onMinimize(actor: RoundedWindowActor) {
     }
 }
 
-export async function onUnminimize(actor: RoundedWindowActor) {
+export function onUnminimize(actor: RoundedWindowActor) {
     // Compatibility with "Compiz alike magic lamp effect".
     // When unminimizing a window, wait until the effect is completed before
     // showing the shadow.
@@ -171,29 +171,30 @@ export async function onUnminimize(actor: RoundedWindowActor) {
                 source.disconnect(id);
             }
         });
-    }
-
-    // Chromium has a bug where windows are sometimes unminimized to the
-    // wrong location, and then move to the correct position shortly after.
-    // This forces an effect refresh after the window has already moved to the
-    // proper position; otherwise, the effect bounds would use the wrong one and
-    // cut off a part of the window.
-    //
-    // See https://github.com/flexagoon/rounded-window-corners/issues/124
-    if (
-        (await isChromium(actor.metaWindow)) &&
-        actor.rwcCustomData !== undefined
-    ) {
-        const oldTimeout = actor.rwcCustomData.unminimizedTimeoutId;
-        if (oldTimeout !== 0) GLib.source_remove(oldTimeout);
-        actor.rwcCustomData.unminimizedTimeoutId = GLib.timeout_add(
-            GLib.PRIORITY_DEFAULT,
-            250,
-            () => {
-                refreshRoundedCorners(actor);
-                return GLib.SOURCE_REMOVE;
-            },
-        );
+    } else if (roundedCornersEffect) {
+        const win = actor.metaWindow;
+        if (win && isChromiumWindow(win) && actor.rwcCustomData) {
+            // Chromium's Wayland surface takes ~250ms to deliver a fresh frame
+            // after restore (and can briefly settle at the wrong position).
+            // Refreshing immediately uses a stale surface and produces
+            // glitched corners; the delayed call picks up the settled surface
+            // without blocking any intermediate refreshes. Cancel any timeout
+            // still pending from a previous unminimize so rapid minimize/
+            // unminimize cycles don't stack redundant refreshes.
+            const oldTimeout = actor.rwcCustomData.unminimizedTimeoutId;
+            if (oldTimeout !== 0) GLib.source_remove(oldTimeout);
+            actor.rwcCustomData.unminimizedTimeoutId = GLib.timeout_add(
+                GLib.PRIORITY_DEFAULT,
+                250,
+                () => {
+                    if (actor.rwcCustomData)
+                        actor.rwcCustomData.unminimizedTimeoutId = 0;
+                    if (actor.metaWindow && getRoundedCornersEffect(actor))
+                        refreshRoundedCorners(actor);
+                    return GLib.SOURCE_REMOVE;
+                },
+            );
+        }
     }
 }
 
