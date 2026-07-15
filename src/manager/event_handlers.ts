@@ -28,7 +28,6 @@ import {
     shouldEnableEffect,
     unwrapActor,
     updateShadowActorStyle,
-    windowScaleFactor,
 } from './utils.js';
 
 /**
@@ -325,14 +324,10 @@ function updateEffect(actor: RoundedWindowActor) {
 
     const cfg = getRoundedCornersCfg(win);
     const windowContentOffset = computeWindowContentsOffset(win);
-    effect.updateUniforms(
-        windowScaleFactor(win),
-        cfg,
-        computeBounds(actor, windowContentOffset),
-    );
+    effect.updateUniforms(cfg, computeBounds(actor, windowContentOffset));
 
     const shadow = windowInfo.shadow;
-    const offsets = computeShadowActorOffset(actor, windowContentOffset);
+    const offsets = computeShadowActorOffset(windowContentOffset);
     const constraints = shadow.get_constraints();
     constraints.forEach((constraint, i) => {
         if (constraint instanceof Clutter.BindConstraint) {

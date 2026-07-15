@@ -4,7 +4,7 @@ import type {WorkspaceAnimationController} from 'resource:///org/gnome/shell/ui/
 
 import Clutter from 'gi://Clutter';
 
-import {getRoundedCornersEffect, windowScaleFactor} from '../manager/utils.js';
+import {getRoundedCornersEffect} from '../manager/utils.js';
 import {SHADOW_PADDING} from '../utils/constants.js';
 import {hasMetaWindow} from '../utils/types.js';
 
@@ -59,14 +59,15 @@ export function addShadowsInWorkspaceSwitch(
                 const shadowClone = new Clutter.Clone({
                     source: shadow,
                 });
-                const paddings = SHADOW_PADDING * windowScaleFactor(win);
 
                 const frameRect = win.get_frame_rect();
 
-                shadowClone.width = frameRect.width + paddings * 2;
-                shadowClone.height = frameRect.height + paddings * 2;
-                shadowClone.x = clone.x + frameRect.x - actor.x - paddings;
-                shadowClone.y = clone.y + frameRect.y - actor.y - paddings;
+                shadowClone.width = frameRect.width + SHADOW_PADDING * 2;
+                shadowClone.height = frameRect.height + SHADOW_PADDING * 2;
+                shadowClone.x =
+                    clone.x + frameRect.x - actor.x - SHADOW_PADDING;
+                shadowClone.y =
+                    clone.y + frameRect.y - actor.y - SHADOW_PADDING;
 
                 // Compatibility with Desktop Cube
                 const notifyId = clone.connect('notify::translation-z', () => {
