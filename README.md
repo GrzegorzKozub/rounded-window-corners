@@ -12,6 +12,9 @@
 > [!NOTE]
 > This is the fork of the [original rounded-window-corners extension](https://github.com/yilozt/rounded-window-corners) by @yilozt, which is no longer maintained.
 
+> [!NOTE]
+> This fork carries additional fixes on top of [flexagoon/rounded-window-corners](https://github.com/flexagoon/rounded-window-corners) that have not been integrated upstream. See [FIXES.md](FIXES.md) for the full list.
+
 ## Installation
 
 ### From Gnome Extensions
@@ -61,7 +64,6 @@ paru gnome-shell-extension-rounded-window-corners-reborn-git
 
 > [!WARNING]
 > The `gnome-shell-extension-rounded-window-corners-reborn` package (without `-git`) is based on a fork of this extension. If you're using that package, please report all issues to [the fork repository](https://github.com/GrzegorzKozub/rounded-window-corners) instead.
-
 
 ## Translation
 
