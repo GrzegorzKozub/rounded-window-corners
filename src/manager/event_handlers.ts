@@ -49,7 +49,7 @@ export function onAddEffect(actor: RoundedWindowActor) {
         const win = actor.metaWindow;
         if (!win) return;
 
-        logDebug(`Adding effect to ${win.title}`);
+        logDebug(`Adding effect to ${win.wmClass}`);
 
         // Skip windows that already have the effect to prevent a memory leak
         const shouldHaveEffect = await shouldEnableEffect(win);
@@ -57,7 +57,7 @@ export function onAddEffect(actor: RoundedWindowActor) {
         const hasEffect = effect && actor.rwcCustomData;
 
         if (!shouldHaveEffect || hasEffect) {
-            logDebug(`Skipping ${win.title}`);
+            logDebug(`Skipping ${win.wmClass}`);
             return;
         }
 
@@ -173,20 +173,27 @@ export function onUnminimize(actor: RoundedWindowActor) {
         });
     } else if (roundedCornersEffect) {
         const win = actor.metaWindow;
-        if (win && isChromiumWindow(win)) {
+        if (win && isChromiumWindow(win) && actor.rwcCustomData) {
             // Chromium's Wayland surface takes ~250ms to deliver a fresh frame
-            // after restore. Refreshing immediately uses a stale surface and
-            // produces glitched corners; the delayed call picks up the settled
-            // surface without blocking any intermediate refreshes.
-            const id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
-                if (actor.rwcCustomData)
-                    actor.rwcCustomData.unminimizedTimeoutId = 0;
-                if (actor.metaWindow && getRoundedCornersEffect(actor))
-                    refreshRoundedCorners(actor);
-                return GLib.SOURCE_REMOVE;
-            });
-            if (actor.rwcCustomData)
-                actor.rwcCustomData.unminimizedTimeoutId = id;
+            // after restore (and can briefly settle at the wrong position).
+            // Refreshing immediately uses a stale surface and produces
+            // glitched corners; the delayed call picks up the settled surface
+            // without blocking any intermediate refreshes. Cancel any timeout
+            // still pending from a previous unminimize so rapid minimize/
+            // unminimize cycles don't stack redundant refreshes.
+            const oldTimeout = actor.rwcCustomData.unminimizedTimeoutId;
+            if (oldTimeout !== 0) GLib.source_remove(oldTimeout);
+            actor.rwcCustomData.unminimizedTimeoutId = GLib.timeout_add(
+                GLib.PRIORITY_DEFAULT,
+                250,
+                () => {
+                    if (actor.rwcCustomData)
+                        actor.rwcCustomData.unminimizedTimeoutId = 0;
+                    if (actor.metaWindow && getRoundedCornersEffect(actor))
+                        refreshRoundedCorners(actor);
+                    return GLib.SOURCE_REMOVE;
+                },
+            );
         }
     }
 }

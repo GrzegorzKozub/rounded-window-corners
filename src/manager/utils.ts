@@ -1,6 +1,5 @@
 /** @file Provides various utility functions used withing signal handling code. */
 
-import type GLib from 'gi://GLib';
 import type St from 'gi://St';
 import type {RoundedCornersEffect} from '../effect/rounded_corners_effect.js';
 import type {
@@ -8,6 +7,7 @@ import type {
     RoundedWindowActor,
 } from '../utils/types.js';
 
+import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 
 import {boxShadowCss} from '../utils/box_shadow.js';
@@ -44,16 +44,15 @@ export function getRoundedCornersCfg(win: Meta.Window) {
     const globalCfg = getPref('global-rounded-corner-settings');
     const customCfgList = getPref('custom-rounded-corner-settings');
 
-    const wmClass = win.get_wm_class_instance();
     if (
-        wmClass === null ||
-        !customCfgList[wmClass] ||
-        !customCfgList[wmClass].enabled
+        win.wmClass === null ||
+        !customCfgList[win.wmClass] ||
+        !customCfgList[win.wmClass].enabled
     ) {
         return globalCfg;
     }
 
-    return customCfgList[wmClass];
+    return customCfgList[win.wmClass];
 }
 
 // Weird TypeScript magic :)
@@ -97,7 +96,7 @@ export function computeBounds(
     // clip its shadow and recompute the outer bounds for it. Check wm_class
     // first to avoid reading the pref for every non-kitty window.
     if (
-        actor.metaWindow.get_wm_class_instance() === 'kitty' &&
+        actor.metaWindow.wmClass === 'kitty' &&
         actor.metaWindow.get_client_type() === Meta.WindowClientType.WAYLAND &&
         getPref('tweak-kitty-terminal')
     ) {
@@ -216,13 +215,12 @@ export async function shouldEnableEffect(
     }
 
     // Skip blacklisted applications.
-    const wmClass = win.get_wm_class_instance();
-    if (wmClass === null) {
+    if (win.wmClass === null) {
         logDebug(`Warning: wm_class_instance of ${win}: ${win.title} is null`);
         return false;
     }
     // handles blacklist / whitelist
-    const isException = getPref('blacklist').includes(wmClass);
+    const isException = getPref('blacklist').includes(win.wmClass);
     const enableExceptions = getPref('whitelist');
     if (isException !== enableExceptions) {
         return false;
@@ -240,7 +238,7 @@ export async function shouldEnableEffect(
     // Skip libhandy/libadwaita applications according to settings.
     const appType = win._appType ?? (await getAppType(win));
     win._appType = appType; // Cache the result.
-    logDebug(`Check Type of window:${win.title} => ${appType}`);
+    logDebug(`Check Type of window:${win.wmClass} => ${appType}`);
 
     if (
         getPref('skip-libadwaita-app') &&
@@ -275,7 +273,12 @@ const CHROMIUM_WM_CLASS_PATTERN =
 
 /**
  * Check whether a window belongs to a Chromium-based browser. These apps
- * render stale surfaces for unfocused windows after screen lock/unlock.
+ * render stale surfaces for unfocused windows after screen lock/unlock, and
+ * take longer to deliver a fresh frame after unminimize.
+ *
+ * Deliberately wm_class-based rather than reading /proc/<pid>/maps: the
+ * latter is prone to permission errors for sandboxed/other-user processes
+ * (see withProcMaps below) and adds an async round-trip to a hot path.
  *
  * @param win - The window to check.
  * @returns Whether the window belongs to a Chromium-based browser.
@@ -293,28 +296,58 @@ type AppType = 'LibAdwaita' | 'LibHandy' | 'Other';
  * @param win - The window to get the type of.
  * @returns the type of the application.
  */
-async function getAppType(win: Meta.Window) {
+function getAppType(win: Meta.Window) {
+    return withProcMaps<AppType>(
+        win,
+        contents => {
+            if (contents.includes('libhandy-1.so')) {
+                return 'LibHandy';
+            }
+
+            if (contents.includes('libadwaita-1.so')) {
+                return 'LibAdwaita';
+            }
+
+            return 'Other';
+        },
+        () => 'Other',
+    );
+}
+
+/**
+ * Read /proc/{pid}/maps of a window and process the contents.
+ * Suppresses permission errors and logs the rest.
+ *
+ * @param win - The window to read the maps from.
+ * @param successCb - The function to run on the read contents.
+ * @param errorCb - The value to run in case of an error.
+ * @returns the result of the callback.
+ */
+async function withProcMaps<T>(
+    win: Meta.Window,
+    successCb: (contents: string) => T,
+    errorCb: () => T,
+) {
     try {
-        // May throw a permission error.
         const contents = await readFile(`/proc/${win.get_pid()}/maps`);
-
-        if (contents.includes('libhandy-1.so')) {
-            return 'LibHandy';
-        }
-
-        if (contents.includes('libadwaita-1.so')) {
-            return 'LibAdwaita';
-        }
-
-        return 'Other';
+        return successCb(contents);
     } catch (e) {
         // /proc/<pid>/maps can fail for several expected reasons: the process
-        // is owned by another user (PERMISSION_DENIED), it exited between
-        // get_pid() and the read (NOT_FOUND or "No such process"), or any
-        // other transient I/O condition. All are benign — log at debug level.
-        logDebug(
-            `Could not read /proc/${win.get_pid()}/maps: ${(e as GLib.Error).message}`,
-        );
-        return 'Other';
+        // is owned by another user (PERMISSION_DENIED), or it exited between
+        // get_pid() and the read (NOT_FOUND). Both are benign — log at debug
+        // level and keep logError for anything else.
+        if (
+            e instanceof Gio.IOErrorEnum &&
+            (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PERMISSION_DENIED) ||
+                e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND))
+        ) {
+            logDebug(
+                `Could not read /proc maps for ${win.wmClass}: ${e.message}`,
+            );
+        } else {
+            logError(e);
+        }
+
+        return errorCb();
     }
 }

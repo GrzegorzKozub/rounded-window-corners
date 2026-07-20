@@ -36,6 +36,19 @@ compositor-level constraint that cannot be addressed from the extension side.
 
 Commit: [`eba3c9d`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/eba3c9d2b1615077891f6672caf5759ad938c28e)
 
+**Upstream status:** the maintainer landed his own fix for this
+([`f71ef3f`](https://github.com/flexagoon/rounded-window-corners/commit/f71ef3fa672d8c6595b760ab2604b0011caa28fd),
+refined in
+[`fa9647d`](https://github.com/flexagoon/rounded-window-corners/commit/fa9647d7c97368d0700d3b69c129351f36ef6a51)),
+using the same 250ms deferred-refresh mitigation but detecting Chromium/Electron
+windows by reading `/dev/shm/.org.chromium.Chromium` markers in
+`/proc/<pid>/maps` instead of matching `wm_class`. We keep our own
+`isChromiumWindow` (wm_class-based) detection here rather than adopting his: it
+avoids the extra async `/proc/<pid>/maps` read on a hot path and is not subject
+to permission errors on that path (see the `/proc/<pid>/maps` entry below —
+upstream's initial version of this same detection helper hit exactly that
+problem before it was patched separately).
+
 ## Chromium effect reapply after screen lock/unlock
 
 GNOME Shell disables and re-enables extensions during screen lock/unlock.
@@ -55,6 +68,10 @@ Commits:
 [`2503b48`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/2503b485cd2d0a33262375988fba1d64e9b49528),
 [`390b018`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/390b018e4072f9d8b926da9de7bda9f21c036185)
 
+**Upstream status:** not addressed. The maintainer said on the PR that he
+"wasn't able to reproduce" this one, so there is no equivalent fix upstream —
+we are not confident it is actually fixed there, and keep ours.
+
 ## Overview shadow allocation crash
 
 Guards against zero frame width in `vfunc_allocate` on the overview shadow
@@ -62,6 +79,12 @@ clone, which previously caused `NaN` values in the allocation box and
 triggered Clutter assertion failures.
 
 Commit: [`8af15df`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/8af15df1be5399fbefd8e6d966271ebe525bf88b)
+
+**Upstream status:** not the same bug. The maintainer separately fixed a
+different overview-shadow issue
+([`c665280`](https://github.com/flexagoon/rounded-window-corners/commit/c665280554b4d520f66e81acb0ec34074ffbd7d6)) —
+an error on preview destroy, not the zero-frame-width `NaN` crash in
+`vfunc_allocate` this entry covers. Both fixes are kept, they don't conflict.
 
 ## Silence expected permission errors on `/proc/<pid>/maps`
 
@@ -74,6 +97,17 @@ are now treated as expected and logged at debug level; `logError` is kept
 for everything else.
 
 Commit: [`29f8971`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/29f8971dc8cf14b571ef2a7ca71d23ec3df61722)
+
+**Upstream status:** largely addressed. The maintainer's proc-maps-based
+Chromium detection (see above) initially reintroduced this exact class of bug
+— it called `logError` unconditionally on any read failure, including
+`PERMISSION_DENIED` for sandboxed/other-user processes — and he then fixed it
+in
+[`639bace`](https://github.com/flexagoon/rounded-window-corners/commit/639bacea0d0982e88c78b9a4d61f3c763f92f0a6)
+by suppressing `PERMISSION_DENIED` specifically. That fix does not cover
+`NOT_FOUND` (the process exiting between `get_pid()` and the read), which our
+version also treats as benign. We merged the two: upstream's structured
+`Gio.IOErrorEnum` check, extended to cover both cases.
 
 ## `clutter_actor_node_new` crash on new browser windows (GNOME 50.2)
 
@@ -94,6 +128,8 @@ re-fetched in the `wm-class` deferred callback instead of using the
 captured (potentially stale) reference.
 
 Commit: [`9b3c201`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/9b3c201bdb636fc2e513b31eee6337a78a8536be)
+
+**Upstream status:** not addressed by any commit synced so far.
 
 ## Effect add/remove mid-paint crash (GNOME 50.2, `keepRoundedCorners.maximized = false`)
 
@@ -120,6 +156,8 @@ iteration, where it is safe to modify the actor's effect list.
 
 Commit: [`3f31e0d`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/3f31e0d25d0510bf7b3b56f33137dfe9fcaf9e60)
 
+**Upstream status:** not addressed by any commit synced so far.
+
 ## Performance improvements
 
 Several hot paths were re-reading GSettings per-frame or per-event. Each
@@ -139,3 +177,10 @@ which adds up quickly during shader updates and resize/focus events.
   the `getPref` entirely.
 
 Commit: [`4b3dd2c`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/4b3dd2c1526746e17130cd40e84c6ca1fbaffbe7)
+
+**Upstream status:** not addressed by any commit synced so far. A related
+refactor
+([`ff03bfe`](https://github.com/flexagoon/rounded-window-corners/commit/ff03bfee1d2cc96f91e67638fe1a16fccc3eb123))
+removed the same redundant default-value reads in `updateShadowActorStyle`
+that this fix also removed, but without the pref-caching layer; our version
+already covered that case and was kept as-is.

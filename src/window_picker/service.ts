@@ -68,7 +68,7 @@ export class WindowPicker {
             }
 
             this.#sendPickedWindow(
-                actor.metaWindow?.get_wm_class_instance() ?? 'window-not-found',
+                actor.metaWindow?.wmClass ?? 'window-not-found',
             );
         });
 

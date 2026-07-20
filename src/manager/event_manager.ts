@@ -93,7 +93,7 @@ export function enableEffect() {
 
             // If wm_class_instance of Meta.Window is null, wait for it to be
             // set before applying the effect.
-            if (win?.get_wm_class_instance() === null) {
+            if (win?.wmClass === null) {
                 const notifyId = win.connect('notify::wm-class', () => {
                     win.disconnect(notifyId);
                     // Defer: notify::wm-class can fire while Wayland protocol

@@ -41,31 +41,21 @@ export async function addShadowInOverview(
         return;
     }
 
-    logDebug(`Adding shadow for ${window.title} in overview`);
+    logDebug(`Adding shadow for ${window.wmClass} in overview`);
 
     // windowContainer has the actual contents of the window preview
     const windowContainer = self.windowContainer;
-    let firstChild: Clutter.Actor | null = windowContainer.firstChild;
 
-    // Apply liear interpolation to the window preview to make it look
+    // Apply linear interpolation to the window preview to make it look
     // better (there's an upstream GNOME bug causing windows to be blurry,
     // this makes the effect less noticeable)
-    firstChild?.add_effect(new LinearFilterEffect());
+    windowContainer.firstChild?.add_effect(new LinearFilterEffect());
 
     // Create a clone of the window's shadow actor and add it to the preview
     const shadowActorClone = new OverviewShadowActorClone(shadow, self);
     windowContainer.bind_property('scale-x', shadowActorClone, 'scale-x', 1);
     windowContainer.bind_property('scale-y', shadowActorClone, 'scale-y', 1);
     self.insert_child_below(shadowActorClone, windowContainer);
-
-    // Disconnect all signals when the window preview is destroyed
-    const connection = self.connect('destroy', () => {
-        shadowActorClone.destroy();
-        firstChild?.clear_effects();
-        firstChild = null;
-
-        self.disconnect(connection);
-    });
 }
 
 /**
