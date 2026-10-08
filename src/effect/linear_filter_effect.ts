@@ -3,17 +3,15 @@
  * in the overview look better.
  */
 
-import type Clutter from 'gi://Clutter';
-
+import Clutter from 'gi://Clutter';
 import Cogl from 'gi://Cogl';
 import GObject from 'gi://GObject';
-import Shell from 'gi://Shell';
 
 export const LinearFilterEffect = GObject.registerClass(
     {},
-    class extends Shell.GLSLEffect {
-        vfunc_build_pipeline() {
-            this.add_glsl_snippet(Cogl.SnippetHook.FRAGMENT, '', '', false);
+    class extends Clutter.ShaderEffect {
+        vfunc_get_static_snippet() {
+            return Cogl.Snippet.new(Cogl.SnippetHook.FRAGMENT, '', null);
         }
 
         vfunc_paint_target(node: Clutter.PaintNode, ctx: Clutter.PaintContext) {
