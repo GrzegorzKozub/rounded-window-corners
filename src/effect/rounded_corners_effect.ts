@@ -43,6 +43,23 @@ export const RoundedCornersEffect = GObject.registerClass(
         }
 
         /**
+         * The offscreen texture of this effect is what the overview previews
+         * (clones of the window actor) end up scaling. With the default
+         * filtering that causes shimmering when previews are scaled, so
+         * sample it bilinearly. Doing it here, instead of in a second effect
+         * on the preview, avoids an extra offscreen pass and a second resample
+         * that blurs the preview.
+         */
+        vfunc_paint_target(node: Clutter.PaintNode, ctx: Clutter.PaintContext) {
+            this.get_pipeline()?.set_layer_filters(
+                0,
+                Cogl.PipelineFilter.LINEAR,
+                Cogl.PipelineFilter.LINEAR,
+            );
+            super.vfunc_paint_target(node, ctx);
+        }
+
+        /**
          * Update uniforms of the shader.
          * For more information, see the comments in the shader file.
          *
