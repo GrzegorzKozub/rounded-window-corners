@@ -23,7 +23,7 @@ export const ClipShadowEffect = GObject.registerClass(
             const snippet = Cogl.Snippet.new(
                 Cogl.SnippetHook.FRAGMENT,
                 declarations,
-                '',
+                null,
             );
             snippet.set_post(code);
             return snippet;

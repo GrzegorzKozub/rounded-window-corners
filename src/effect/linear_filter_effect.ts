@@ -11,9 +11,7 @@ export const LinearFilterEffect = GObject.registerClass(
     {},
     class extends Clutter.ShaderEffect {
         vfunc_get_static_snippet() {
-            // This effect doesn't modify the shader itself, it only changes
-            // the texture filtering, so an empty snippet is enough.
-            return Cogl.Snippet.new(Cogl.SnippetHook.FRAGMENT, '', '');
+            return Cogl.Snippet.new(Cogl.SnippetHook.FRAGMENT, '', null);
         }
 
         vfunc_paint_target(node: Clutter.PaintNode, ctx: Clutter.PaintContext) {
