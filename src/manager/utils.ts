@@ -8,6 +8,7 @@ import type {
 } from '../utils/types.js';
 
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 
 import {boxShadowCss} from '../utils/box_shadow.js';
@@ -328,18 +329,23 @@ async function withProcMaps<T>(
     successCb: (contents: string) => T,
     errorCb: () => T,
 ) {
+    const pid = win.get_pid();
     try {
-        const contents = await readFile(`/proc/${win.get_pid()}/maps`);
+        const contents = await readFile(`/proc/${pid}/maps`);
         return successCb(contents);
     } catch (e) {
         // /proc/<pid>/maps can fail for several expected reasons: the process
         // is owned by another user (PERMISSION_DENIED), or it exited between
-        // get_pid() and the read (NOT_FOUND). Both are benign — log at debug
-        // level and keep logError for anything else.
+        // get_pid() and the read. Depending on timing, the latter surfaces as
+        // NOT_FOUND or as a generic FAILED error ("No such process", ESRCH),
+        // so check that the process is gone instead of matching the message.
+        // All of these are benign: log at debug level and keep logError for
+        // anything else.
         if (
             e instanceof Gio.IOErrorEnum &&
             (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PERMISSION_DENIED) ||
-                e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND))
+                e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND) ||
+                !GLib.file_test(`/proc/${pid}`, GLib.FileTest.EXISTS))
         ) {
             logDebug(
                 `Could not read /proc maps for ${win.wmClass}: ${e.message}`,
