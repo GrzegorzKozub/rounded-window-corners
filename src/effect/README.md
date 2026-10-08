@@ -7,16 +7,13 @@ This directory contains the code for applying GLSL effects to windows.
 Due to a bug in GNOME, window shadows are drawn behind window contents. This
 effect loads a simple Fragment shader that clips the shadow behind the window.
 
-## `linear_filter_effect.ts`
-
-This effect applies linear interpolation to the window, which makes windows
-in the overview look less blurry.
-
 ## `rounded_corners_effect.ts`
 
 This effect loads the actual Fragment shader that rounds the corners and draws
 custom borders for the window. The class applies the effect and provides a
-function to change uniforms passed to the effect.
+function to change uniforms passed to the effect. It also makes the offscreen
+texture use bilinear filtering, so that window previews in the overview don't
+shimmer when scaled.
 
 ## `shader`
 
