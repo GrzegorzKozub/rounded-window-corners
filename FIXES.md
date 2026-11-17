@@ -34,7 +34,7 @@ shows square corners — the `Shell.GLSLEffect` shader does not apply through
 `Clutter.Clone`, so the raw window surface is rendered. This is a
 compositor-level constraint that cannot be addressed from the extension side.
 
-Commit: [`e4a4b3f`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/e4a4b3f0bb8aba5c5aef6511ce252a9dd132b39a)
+Commit: [`e4a4b3f`](https://github.com/GrzegorzKozub/rounded-window-corners/commit/e4a4b3f0bb8aba5c5aef6511ce252a9dd132b39a)
 
 **Upstream status:** the maintainer landed his own fix for this
 ([`f71ef3f`](https://github.com/flexagoon/rounded-window-corners/commit/f71ef3fa672d8c6595b760ab2604b0011caa28fd),
@@ -65,8 +65,8 @@ promoted from `refreshShadow` to `refreshRoundedCorners` so that any focus
 change recomputes shader bounds, not just the shadow.
 
 Commits:
-[`00dd5ba`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/00dd5ba68c701765b1957bd5a2463e124a44ce84),
-[`68a1621`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/68a1621e5bdf2c223dacd4159931041b32fc88fa)
+[`00dd5ba`](https://github.com/GrzegorzKozub/rounded-window-corners/commit/00dd5ba68c701765b1957bd5a2463e124a44ce84),
+[`68a1621`](https://github.com/GrzegorzKozub/rounded-window-corners/commit/68a1621e5bdf2c223dacd4159931041b32fc88fa)
 
 **Upstream status:** not addressed. The maintainer said on the PR that he
 "wasn't able to reproduce" this one, so there is no equivalent fix upstream —
@@ -78,7 +78,7 @@ Guards against zero frame width in `vfunc_allocate` on the overview shadow
 clone, which previously caused `NaN` values in the allocation box and
 triggered Clutter assertion failures.
 
-Commit: [`23da8f7`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/23da8f7ced75f0db10ac6db69a60b7732173a7fd)
+Commit: [`23da8f7`](https://github.com/GrzegorzKozub/rounded-window-corners/commit/23da8f7ced75f0db10ac6db69a60b7732173a7fd)
 
 **Upstream status:** not the same bug. The maintainer separately fixed a
 different overview-shadow issue
@@ -96,7 +96,7 @@ a full stack trace on every such window. `PERMISSION_DENIED` and `NOT_FOUND`
 are now treated as expected and logged at debug level; `logError` is kept
 for everything else.
 
-Commit: [`97bd69a`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/97bd69ae6b3d57e65594492a763058be7b6975f8)
+Commit: [`97bd69a`](https://github.com/GrzegorzKozub/rounded-window-corners/commit/97bd69ae6b3d57e65594492a763058be7b6975f8)
 
 **Upstream status:** largely addressed. The maintainer's proc-maps-based
 Chromium detection (see above) initially reintroduced this exact class of bug
@@ -127,7 +127,7 @@ null-guarded in the `window-created` handler, and a fresh actor is
 re-fetched in the `wm-class` deferred callback instead of using the
 captured (potentially stale) reference.
 
-Commit: [`2a1ccc2`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/2a1ccc2534ad9ca66aae4ee5f84ce74733f46a1e)
+Commit: [`2a1ccc2`](https://github.com/GrzegorzKozub/rounded-window-corners/commit/2a1ccc2534ad9ca66aae4ee5f84ce74733f46a1e)
 
 **Upstream status:** not addressed by any commit synced so far.
 
@@ -154,7 +154,7 @@ callbacks in `enableEffect`, are now wrapped with
 add/remove out of any active paint frame into the next GLib main loop
 iteration, where it is safe to modify the actor's effect list.
 
-Commit: [`2b83e34`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/2b83e34cae771cee7d50974232c0e70c45abc26e)
+Commit: [`2b83e34`](https://github.com/GrzegorzKozub/rounded-window-corners/commit/2b83e34cae771cee7d50974232c0e70c45abc26e)
 
 **Upstream status:** not addressed by any commit synced so far.
 
@@ -176,7 +176,7 @@ which adds up quickly during shader updates and resize/focus events.
 - `computeBounds` now compares `wm_class` first, so non-kitty windows skip
   the `getPref` entirely.
 
-Commit: [`6842831`](https://github.com/GrzegorzKozub/rounded-window-corners-fork/commit/6842831281e0859480833dac2c5f61e8f875038b)
+Commit: [`6842831`](https://github.com/GrzegorzKozub/rounded-window-corners/commit/6842831281e0859480833dac2c5f61e8f875038b)
 
 **Upstream status:** not addressed by any commit synced so far. A related
 refactor
