@@ -14,21 +14,6 @@ const [declarations, code] = await readShader(
     'shader/rounded_corners.frag',
 );
 
-/** Typings for the installed Clutter lack `set_uniform_float`. */
-function setFloat(
-    effect: Clutter.ShaderEffect,
-    name: string,
-    components: number,
-    value: number[],
-) {
-    (
-        effect as unknown as {
-            // biome-ignore lint/style/useNamingConvention: GObject method name
-            set_uniform_float: (n: string, c: number, v: number[]) => void;
-        }
-    ).set_uniform_float(name, components, value);
-}
-
 export const RoundedCornersEffect = GObject.registerClass(
     {},
     class Effect extends Clutter.ShaderEffect {
@@ -132,14 +117,16 @@ export const RoundedCornersEffect = GObject.registerClass(
             pixelStep: number[],
             exponent: number,
         ) {
-            setFloat(this, 'bounds', 4, bounds);
-            setFloat(this, 'clipRadius', 1, [radius]);
-            setFloat(this, 'borderWidth', 1, [borderWidth]);
-            setFloat(this, 'borderColor', 4, borderColor);
-            setFloat(this, 'borderedAreaBounds', 4, borderedAreaBounds);
-            setFloat(this, 'borderedAreaClipRadius', 1, [borderedAreaRadius]);
-            setFloat(this, 'pixelStep', 2, pixelStep);
-            setFloat(this, 'exponent', 1, [exponent]);
+            this.set_uniform_float('bounds', 4, bounds);
+            this.set_uniform_float('clipRadius', 1, [radius]);
+            this.set_uniform_float('borderWidth', 1, [borderWidth]);
+            this.set_uniform_float('borderColor', 4, borderColor);
+            this.set_uniform_float('borderedAreaBounds', 4, borderedAreaBounds);
+            this.set_uniform_float('borderedAreaClipRadius', 1, [
+                borderedAreaRadius,
+            ]);
+            this.set_uniform_float('pixelStep', 2, pixelStep);
+            this.set_uniform_float('exponent', 1, [exponent]);
             this.queue_repaint();
         }
     },
