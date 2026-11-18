@@ -92,11 +92,16 @@ an error on preview destroy, not the zero-frame-width `NaN` crash in
 windows. For processes owned by another user (flatpak sandboxes, root-owned
 apps), the file is unreadable and GIO raises `PERMISSION_DENIED`. The
 existing fallback already handled the outcome, but the error was logged with
-a full stack trace on every such window. `PERMISSION_DENIED` and `NOT_FOUND`
-are now treated as expected and logged at debug level; `logError` is kept
-for everything else.
+a full stack trace on every such window. The same happens when the process
+exits between `get_pid()` and the read. Depending on timing, that surfaces as
+`NOT_FOUND` (`ENOENT`) or as `FAILED`: the kernel returns `ESRCH` ("No such
+process"), which GIO has no specific code for. `PERMISSION_DENIED`,
+`NOT_FOUND` and `FAILED` are now treated as expected and logged at debug
+level; `logError` is kept for everything else.
 
-Commit: [`97bd69a`](https://github.com/GrzegorzKozub/rounded-window-corners/commit/97bd69ae6b3d57e65594492a763058be7b6975f8)
+Commits:
+[`97bd69a`](https://github.com/GrzegorzKozub/rounded-window-corners/commit/97bd69ae6b3d57e65594492a763058be7b6975f8),
+[`d4548f1`](https://github.com/GrzegorzKozub/rounded-window-corners/commit/d4548f1adcdbce6006fdac845df4b8e3c3b2602e)
 
 **Upstream status:** largely addressed. The maintainer's proc-maps-based
 Chromium detection (see above) initially reintroduced this exact class of bug
@@ -107,7 +112,10 @@ in
 by suppressing `PERMISSION_DENIED` specifically. That fix does not cover
 `NOT_FOUND` (the process exiting between `get_pid()` and the read), which our
 version also treats as benign. We merged the two: upstream's structured
-`Gio.IOErrorEnum` check, extended to cover both cases.
+`Gio.IOErrorEnum` check, extended to cover both cases. That merge still let
+the `ESRCH` case through, because GIO reports it as `FAILED`: it kept showing
+up in the journal as `Error reading from file: No such process`, so `FAILED`
+was added later.
 
 ## `clutter_actor_node_new` crash on new browser windows (GNOME 50.2)
 
