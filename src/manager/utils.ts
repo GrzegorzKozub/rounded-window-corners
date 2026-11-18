@@ -334,12 +334,15 @@ async function withProcMaps<T>(
     } catch (e) {
         // /proc/<pid>/maps can fail for several expected reasons: the process
         // is owned by another user (PERMISSION_DENIED), or it exited between
-        // get_pid() and the read (NOT_FOUND). Both are benign — log at debug
-        // level and keep logError for anything else.
+        // get_pid() and the read. An exited process shows up either as
+        // NOT_FOUND (ENOENT) or as FAILED, because GIO has no specific code
+        // for ESRCH ("No such process"). All are benign — log at debug level
+        // and keep logError for anything else.
         if (
             e instanceof Gio.IOErrorEnum &&
             (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.PERMISSION_DENIED) ||
-                e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND))
+                e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND) ||
+                e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.FAILED))
         ) {
             logDebug(
                 `Could not read /proc maps for ${win.wmClass}: ${e.message}`,
